@@ -1,0 +1,24 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "dexcom-exporter.fullname" . }}
+  labels:
+    {{- include "dexcom-exporter.labels" . | nindent 4 }}
+spec:
+  endpoints:
+    - scheme: http
+      filterRunning: true
+      port: http
+      path: /
+      interval: {{ .Values.dexcom.interval }}s
+      scrapeTimeout: {{ mulf 0.8 .Values.dexcom.interval | floor | int }}s
+      targetPort: {{ .Values.service.port }}
+  jobLabel: dexcom
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  targetLabels:
+    - dexcom.eu/username
+  selector:
+    {{- include "dexcom-exporter.selectorLabels" . | nindent 4 }}
