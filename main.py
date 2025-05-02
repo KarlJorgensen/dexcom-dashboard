@@ -12,82 +12,83 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import os
-from sys import stdout
+from sys import stderr
 import time
-import logging
 import signal
 from pydexcom import Dexcom
-from prometheus_client import Gauge, start_http_server
-from dotenv import load_dotenv
+from prometheus_client import Gauge, Counter, start_http_server
 
-load_dotenv()
-
-# Configure logging
-LOG_DIR = os.getenv("LOG_DIR", "/var/log/dexcom")
-os.makedirs(LOG_DIR, exist_ok=True)
-logging.basicConfig(
-    filename=os.path.join(LOG_DIR, "glucose_monitor.log"),
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-# Get credentials from environment variables
 DEXCOM_USERNAME = os.getenv("DEXCOM_USERNAME")
 DEXCOM_PASSWORD = os.getenv("DEXCOM_PASSWORD")
 DEXCOM_REGION = os.getenv("DEXCOM_REGION", "us")
 PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", 8000))
 INTERVAL = int(os.getenv("INTERVAL", "60"))
 
-if not DEXCOM_USERNAME or not DEXCOM_PASSWORD:
-    raise ValueError("Dexcom username and password must be set in environment variables.")
-else:
-    logging.debug(f"Dexcom credentials loaded successfully.")
+if not DEXCOM_USERNAME:
+    raise SystemExit('Environment variable DEXCOM_USERNAME not set (or sadly empty)')
+if not DEXCOM_PASSWORD:
+    raise SystemExit('Environment variable DEXCOM_PASSWORD not set (or sadly empty)')
 
-# Initialize Dexcom client
 dexcom = Dexcom(username=DEXCOM_USERNAME,
                 password=DEXCOM_PASSWORD,
                 region=DEXCOM_REGION)
 
-# Set up Prometheus metrics
-glucose_value_gauge = Gauge('glucose_value', 'Current glucose value in mg/dL')
-glucose_mmol_gauge = Gauge('glucose_mmol', 'Current glucose value in mmol/L')
-trend_direction_gauge = Gauge('trend_direction', 'Current trend direction as numeric value')
+glucose_value_old = Gauge('glucose_value',
+                      'Current glucose value in mg/dL (OBSOLETE: Use glucose_mg_dl instead)')
+glucose_mg_dl = Gauge('glucose_mg_dl',
+                      'Current glucose value in mg/dL')
+glucose_mmol_old = Gauge('glucose_mmol',
+                     'Current glucose value in mmol/L (OBSOLETE: Use glucose_mmol_l instead)')
+glucose_mmol_l = Gauge('glucose_mmol_l',
+                       'Current glucose value in mmol/L')
+trend_direction = Gauge('trend_direction',
+                        'Current trend direction as numeric value (OBSOLETE)')
 
-# Signal handler to gracefully shutdown
+readings_retrieved = Counter(
+    'readings_retrieved',
+    'Total number of readings successfully obtained from the Dexcom API')
+readings_failed = Counter(
+    'readings_failed',
+    'Total number of times we *failed* to get a reading from the Dexcom API')
+
+reading_age = Gauge(
+    'reading_age',
+    'Age of the reading in seconds.')
+
 def handle_shutdown(signum, frame):
-    logging.info("Received shutdown signal. Exiting.")
-    exit(0)
+    raise SystemExit('Received shutdown signal. Bye.')
 
 signal.signal(signal.SIGTERM, handle_shutdown)
 signal.signal(signal.SIGINT, handle_shutdown)
 
-# Start Prometheus metrics server
 start_http_server(PROMETHEUS_PORT)
-logging.info(f"Prometheus metrics server started on port {PROMETHEUS_PORT}")
+print(f"Prometheus metrics server started on port {PROMETHEUS_PORT}")
 
-try:
-    while True:
-        # Fetch the current glucose reading
-        glucose_reading = dexcom.get_current_glucose_reading()
+while True:
+    reading = dexcom.get_current_glucose_reading()
+    now = datetime.datetime.utcnow()
 
-        logging.debug(f"Glucose reading: {glucose_reading}")
+    if not reading:
+        print('Did not get a reading...')
+        readings_failed.inc()
+    else:
+        print(f'Reading: {reading.mg_dl=}, {reading.mmol_l=}, {reading.trend_arrow=}')
 
-        if glucose_reading:
-            # Extract reading detailsd
-            value = glucose_reading.value
-            mmol_l = glucose_reading.mmol_l
-            trend_direction = glucose_reading.trend
+        glucose_value_old.set(reading.value)
+        glucose_mg_dl.set(reading.mg_dl)
+        glucose_mmol_old.set(reading.mmol_l)
+        glucose_mmol_l.set(reading.mmol_l)
 
-            # Update Prometheus metrics
-            glucose_value_gauge.set(value)
-            glucose_mmol_gauge.set(mmol_l)
-            trend_direction_gauge.set(trend_direction)
+        # The datetime objecs cannot (necessarily) be subtracted from
+        # each other, as you cannot mix timezone-aware and
+        # timezone-naive objects. The local time may be timezone
+        # aware. Or not. So we just use the epoch timestamps instead.
+        reading_age.set(now.timestamp() - reading.datetime.timestamp())
 
-            logging.debug("Glucose metrics updated successfully.")
+        trend_direction.set(reading.trend)
 
-        time.sleep(INTERVAL)
+        readings_retrieved.inc()
 
-except Exception as e:
-    logging.error(f"An error occurred: {e}")
-    handle_shutdown(None, None)
+    time.sleep(INTERVAL)

@@ -19,9 +19,6 @@ spec:
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
-  podTargetLabels:
-    - dexcom.eu/username
-    - dexcom/username
   targetLabels:
     - dexcom.eu/username
     - dexcom/username
