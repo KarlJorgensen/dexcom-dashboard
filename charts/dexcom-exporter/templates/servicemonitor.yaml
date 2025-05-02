@@ -1,3 +1,4 @@
+{{- if true }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -14,11 +15,17 @@ spec:
       interval: {{ .Values.dexcom.interval }}s
       scrapeTimeout: {{ mulf 0.8 .Values.dexcom.interval | floor | int }}s
       targetPort: {{ .Values.service.port }}
-  jobLabel: dexcom
+  jobLabel: dexcom-exporter
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
+  podTargetLabels:
+    - dexcom.eu/username
+    - dexcom/username
   targetLabels:
     - dexcom.eu/username
+    - dexcom/username
   selector:
-    {{- include "dexcom-exporter.selectorLabels" . | nindent 4 }}
+    matchLabels:
+      {{- include "dexcom-exporter.selectorLabels" . | nindent 6 }}
+{{- end }}

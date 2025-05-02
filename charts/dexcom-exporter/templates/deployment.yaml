@@ -4,7 +4,6 @@ metadata:
   name: {{ include "dexcom-exporter.fullname" . }}
   labels:
     {{- include "dexcom-exporter.labels" . | nindent 4 }}
-    dexcom.eu/username: {{ .Values.dexcom.username }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -23,7 +22,6 @@ spec:
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-        dexcom.eu/username: {{ .Values.dexcom.username }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

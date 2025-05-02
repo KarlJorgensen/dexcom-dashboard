@@ -119,3 +119,56 @@ dexcom:
   region: us
   # Seconds between querying the Dexcom API
   interval: 60
+
+# Values for the prometheus rules.
+#
+# NOTE: There is only support specifying blood sugar in the molar
+#       concentration where the level is specified in units of
+#       mmol/Ltr.
+#
+# If you work in mass concentration (i.e. in units of mg/dL), then you
+# must perform the conversion yourself. There are sources online for
+# this e.g.:
+#
+#  * https://www.ncbi.nlm.nih.gov/books/NBK348987/ (check "TABLE 86")
+#
+#  * https://www.diabetes.co.uk/blood-sugar-converter.html
+#
+# There seems to be no general consensous on which values to use for
+# the `priority` value for the severity.
+#
+rules:
+  noData:
+    severity: error
+    for: 10m
+
+  criticalLow:
+    # Alert will fire below this value
+    mmolLtr: 2.8
+    severity: critical
+    for: "" # fire immediately
+
+  low:
+    # Alert will fire below this value
+    mmolLtr: 4.0
+    severity: critical
+    for: 5m
+
+  high:
+    # Alert will fire at or above this value
+    mmolLtr: 7.0
+    severity: warning
+    # Longer grace period to allow for spikes after meals
+    for: 30m
+
+  veryHigh:
+    # Alert will fire at or above this value
+    mmolLtr: 11
+    severity: error
+    for: 20m
+
+  criticalHigh:
+    # Alert will fire at or above this value
+    mmolLtr: 18
+    severity: critical
+    for: 10m
