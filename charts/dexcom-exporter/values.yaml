@@ -117,8 +117,16 @@ dexcom:
   username: ""
   password: ""
   region: us
-  # Seconds between querying the Dexcom API
-  interval: 60
+
+scrape:
+  # Interval between querying the Dexcom API.
+  #
+  # The Dexcom API appears to only collect data once every 5 minute, so
+  # scraping much more frequently than this is probably useless.
+  interval: 1m
+
+  timeout: 30s
+
 
 # Values for the prometheus rules.
 #

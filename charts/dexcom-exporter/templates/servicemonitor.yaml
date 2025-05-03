@@ -12,9 +12,10 @@ spec:
       filterRunning: true
       port: http
       path: /
-      interval: {{ .Values.dexcom.interval }}s
-      scrapeTimeout: {{ mulf 0.8 .Values.dexcom.interval | floor | int }}s
+      interval: {{ .Values.scrape.interval }}
+      scrapeTimeout: {{ .Values.scrape.timeout }}
       targetPort: {{ .Values.service.port }}
+      honorTimestamps: true
   jobLabel: dexcom-exporter
   namespaceSelector:
     matchNames:

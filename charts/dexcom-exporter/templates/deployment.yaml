@@ -59,8 +59,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "dexcom-exporter.fullname" . }}
                   key: password
-            - name: INTERVAL
-              value: "{{ .Values.dexcom.interval }}"
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
