@@ -30,8 +30,6 @@ DEXCOM_PASSWORD = os.getenv("DEXCOM_PASSWORD")
 DEXCOM_REGION = os.getenv("DEXCOM_REGION", "us")
 PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", "8000"))
 
-
-
 if not DEXCOM_USERNAME:
     raise SystemExit('Environment variable DEXCOM_USERNAME not set (or sadly empty)')
 if not DEXCOM_PASSWORD:
@@ -57,6 +55,10 @@ class OurGauge(GaugeMetricFamily):
                         value=value,
                         timestamp=Timestamp(sec=secs , nsec=nsecs * 1000000))
         return self
+
+    def clear_old_samples(self):
+        """Remove old samples"""
+        self.samples = []
 
 #pylint: disable=too-few-public-methods
 class GlucoCollector(registry.Collector):
@@ -89,9 +91,10 @@ class GlucoCollector(registry.Collector):
         metrics, without actually collecting a new reading
 
         """
-        yield from self._yield_metrics()
+        yield from self.list_metrics()
 
-    def _yield_metrics(self):
+    def list_metrics(self):
+        """List the dexcom metrics"""
         yield from [
             self.glucose_value_old,
             self.glucose_mg_dl,
@@ -114,10 +117,14 @@ class GlucoCollector(registry.Collector):
                 raise ValueError(f'Internal error - expecting to go back {minutes=}  !?')
             minutes = min(minutes, 1440)
 
+        if self._last_reading_stamp:
+            for metric in self.list_metrics():
+                metric.clear_old_samples()
+
         readings = dexcom.get_glucose_readings(minutes=minutes)
         if not readings:
             print('No reading available from Dexcom within the last {minutes} minutes.')
-            yield from self._yield_metrics()
+            yield from self.list_metrics()
             return
 
         readings = [reading
@@ -126,8 +133,9 @@ class GlucoCollector(registry.Collector):
                     or reading.datetime > self._last_reading_stamp]
 
         if not readings:
-            print('Dexcom just repeated the last reading. Either no new actual readings, or scrape interval too tight.')
-            yield from self._yield_metrics()
+            print('Dexcom just repeated the last reading.'
+                  ' Either no new actual readings, or scrape interval too tight.')
+            yield from self.list_metrics()
             return
 
         readings.sort(key=lambda r:r.datetime)
@@ -144,7 +152,7 @@ class GlucoCollector(registry.Collector):
             self.trend_direction.add_nolabel(reading.trend, reading.datetime)
             self._last_reading_stamp = reading.datetime
 
-        yield from self._yield_metrics()
+        yield from self.list_metrics()
 
 collector = GlucoCollector()
 REGISTRY.register(collector)

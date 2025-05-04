@@ -2,7 +2,7 @@
 
 REPOSITORY = registry.home.jorgensen.org.uk
 IMAGE = dexcom-dashboard
-VERSION = 0.1.3
+VERSION = 0.1.4
 
 export PROMETHEUS_PORT = 8000
 
