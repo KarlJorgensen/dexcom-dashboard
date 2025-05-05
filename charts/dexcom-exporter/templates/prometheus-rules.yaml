@@ -15,6 +15,7 @@ metadata:
     {{- include "dexcom-exporter.labels" . | nindent 4 }}
 spec:
   groups:
+
     - name: dexcom
       rules:
 
@@ -116,29 +117,9 @@ spec:
           expr: |
             {{ .Values.rules.veryHigh.mmolLtr }} <=
             last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[15m])
-            < {{ .Values.rules.criticalHigh.mmolLtr }}
           {{- with .Values.rules.veryHigh.for }}
           for: {{ . }}
           {{- end }}
           labels:
             severity: {{ .Values.rules.veryHigh.severity }}
-            action: needsInsulin
-  
-        - alert: BloodSugarLevelsCriticalHigh
-          annotations:
-            summary: Blood sugar level is critically high for {{ .Values.dexcom.username }}
-            description: >-
-              {{ .Values.dexcom.username }} has critically high blood sugar, and needs insulin.
-
-              Prolonged periods of high blood sugar can lead to long
-              term health problems.
-            action: Need to administer insulin - NOW!
-          expr: |
-            {{ .Values.rules.criticalHigh.mmolLtr }} <=
-            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[15m])
-          {{- with .Values.rules.criticalHigh.for }}
-          for: {{ . }}
-          {{- end }}
-          labels:
-            severity: {{ .Values.rules.criticalHigh.severity }}
             action: needsInsulin
