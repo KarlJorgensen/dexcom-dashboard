@@ -145,6 +145,12 @@ scrape:
 # There seems to be no general consensous on which values to use for
 # the `priority` value for the severity.
 #
+# An alert will be firing if the criteria has been fulfilled for `for`
+# time. If `for` is not specified, it will fire immediately.
+#
+# If `lookback` is specified, the alert will look at the last value in
+# the last `lookback` time. If `lookback` is not specified, only the
+# last value will be used.
 rules:
   noData:
     severity: error
