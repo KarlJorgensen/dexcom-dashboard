@@ -48,7 +48,7 @@ spec:
               protocol: TCP
           env:
             - name: DEXCOM_REGION
-              value: {{ .Values.dexcom.region }}
+              value: {{ required "dexcom.region is missing" .Values.dexcom.region }}
             - name: DEXCOM_USERNAME
               valueFrom:
                 secretKeyRef:
