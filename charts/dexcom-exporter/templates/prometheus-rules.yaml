@@ -42,11 +42,13 @@ spec:
           annotations:
             summary: Blood sugar level is critically low for {{ .Values.dexcom.username }}
             description: >-
-              {{ .Values.dexcom.username }} has critically low blood sugar and may need help.
+              {{ .Values.dexcom.username }} has critically low blood sugar level
+              (currently {{"{{"}} printf "%.1f" $value {{"}}"}} mmol/ltr)
+              and may need help.
 
               Very low blood sugar can cause confusion, cognitive
               difficulties or even seizures, which can prevent the
-              patient from dealing with the issue themselves.
+              sufferer from dealing with the issue themselves.
 
             action: Need to urgently eat something or even administer a glucose injection
           expr: |
@@ -63,10 +65,11 @@ spec:
           annotations:
             summary: Blood sugar level is low for {{ .Values.dexcom.username }}
             description: >-
-              {{ .Values.dexcom.username }} has low blood sugar - if
-              it drops much lower he/she may need help.
+              {{ .Values.dexcom.username }} has a low blood sugar level
+              (currently {{"{{"}} printf "%.1f" $value{{"}}" }} mmol/ltr)
+              - if it drops much lower he/she may need help.
 
-            action: Need to eat something to bring blood sugar levels up
+            action: Need to eat something to bring blood sugar level up
           expr: |
             last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[10m])
             < {{ .Values.rules.low.mmolLtr }}
@@ -83,11 +86,9 @@ spec:
           annotations:
             summary: Blood sugar level is high for {{ .Values.dexcom.username }}
             description: >-
-              {{ .Values.dexcom.username }} has high blood sugar, and may need insulin.
-
-              It is normal for blood sugar to spike after a meal, but
-              prolonged periods of high blood sugar can lead to long
-              term health problems.
+              {{ .Values.dexcom.username }} has a high blood sugar level
+              (currently {{"{{"}} printf "%.1f" $value {{"}}"}} mmol/ltr),
+              and may need insulin.
 
             action: Ensure that insulin has been administered
           expr: |
@@ -104,11 +105,13 @@ spec:
           annotations:
             summary: Blood sugar level is very high for {{ .Values.dexcom.username }}
             description: >-
-              {{ .Values.dexcom.username }} has high blood sugar, and likely needs insulin.
+              {{ .Values.dexcom.username }} has a high blood sugar level
+              (currently {{"{{"}} printf "%.1f" $value {{"}}"}} mmol/ltr),
+              and likely needs insulin.
 
-              It is normal for blood sugar to spike after a meal, but
-              prolonged periods of high blood sugar can lead to long
-              term health problems.
+              It is normal for blood sugar levels to spike after a
+              meal, but prolonged periods of high blood sugar levels
+              can lead to long term health problems.
 
               Perhaps insulin was not administered?
             action: Need to administer insulin - urgently
