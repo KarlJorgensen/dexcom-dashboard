@@ -31,14 +31,14 @@ spec:
         #       Without this data, problems cannot be detected, and no
         #       alerts will be sent.
         #   expr: |
-        #     absent(up{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[15m:1m]) == 1
+        #     absent(up{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[10m:1m]) == 1
         #   {{- with .Values.rules.noData.for }}
         #   for: {{ . }}
         #   {{- end }}
         #   labels:
-        #     severity: {{ .Values.rules.noData.severity }}
+        #     severity: error
 
-        - alert: BloodSugarLevelCriticalLow
+        - alert: BloodSugarLevelLow
           annotations:
             summary: Blood sugar level is critically low for {{ .Values.dexcom.username }}
             description: >-
@@ -50,13 +50,13 @@ spec:
 
             action: Need to urgently eat something or even administer a glucose injection
           expr: |
-            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[15m])
+            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[10m])
             < {{ .Values.rules.criticalLow.mmolLtr }}
           {{- with .Values.rules.criticalLow.for }}
           for: {{ . }}
           {{- end }}
           labels:
-            severity: {{ .Values.rules.criticalLow.severity }}
+            severity: critical
             action: needsGlucose
 
         - alert: BloodSugarLevelLow
@@ -68,14 +68,13 @@ spec:
 
             action: Need to eat something to bring blood sugar levels up
           expr: |
-            {{ .Values.rules.criticalLow.mmolLtr }} <=
-            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[15m])
+            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[10m])
             < {{ .Values.rules.low.mmolLtr }}
           {{- with .Values.rules.low.for }}
           for: {{ . }}
           {{- end }}
           labels:
-            severity: {{ .Values.rules.low.severity }}
+            severity: warning
             action: needsGlucose
 
         # No alerts for levels between "low" and "high" - these are the _desired_ values!
@@ -92,17 +91,16 @@ spec:
 
             action: Ensure that insulin has been administered
           expr: |
-            {{ .Values.rules.high.mmolLtr }} <=
-            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[15m])
-            < {{ .Values.rules.veryHigh.mmolLtr }}
+            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[10m])
+            >= {{ .Values.rules.high.mmolLtr }}
           {{- with .Values.rules.high.for }}
           for: {{ . }}
           {{- end }}
           labels:
-            severity: {{ .Values.rules.high.severity }}
+            severity: warning
             action: needsInsulin
 
-        - alert: BloodSugarLevelVeryHigh
+        - alert: BloodSugarLevelHigh
           annotations:
             summary: Blood sugar level is very high for {{ .Values.dexcom.username }}
             description: >-
@@ -115,11 +113,11 @@ spec:
               Perhaps insulin was not administered?
             action: Need to administer insulin - urgently
           expr: |
-            {{ .Values.rules.veryHigh.mmolLtr }} <=
-            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[15m])
+            last_over_time(glucose_mmol{job="dexcom-exporter", dexcom_username="{{.Values.dexcom.username}}"}[10m])
+            >= {{ .Values.rules.veryHigh.mmolLtr }}
           {{- with .Values.rules.veryHigh.for }}
           for: {{ . }}
           {{- end }}
           labels:
-            severity: {{ .Values.rules.veryHigh.severity }}
+            severity: critical
             action: needsInsulin

@@ -153,30 +153,25 @@ scrape:
 # last value will be used.
 rules:
   noData:
-    severity: error
     for: 10m
 
   criticalLow:
     # Alert will fire below this value
     mmolLtr: 3.1
-    severity: critical
     for: "" # fire immediately
 
   low:
     # Alert will fire below this value
     mmolLtr: 4.0
-    severity: critical
-    for: 5m
+    for: "" # fire immediately
 
   high:
     # Alert will fire at or above this value
     mmolLtr: 11.0
-    severity: warning
     # Longer grace period to allow for spikes after meals
     for: 30m
 
   veryHigh:
     # Alert will fire at or above this value
     mmolLtr: 20
-    severity: critical
-    for: 20m
+    for: 10m
